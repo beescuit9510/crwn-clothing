@@ -1,3 +1,4 @@
+import { useReducer } from 'react';
 import { createContext, useState, useEffect } from 'react';
 import {
   onAuthStateChangedListener,
@@ -10,8 +11,43 @@ export const UserContext = createContext({
   setCurrentUser: () => null,
 });
 
+export const USER_ACTION_TYPES = {
+  SET_CURRENT_USER: 'SET_CURRENT_USER',
+};
+
+const userReducer = (state, action) => {
+  console.log('dispatched');
+  const { type, payload } = action;
+
+  const isUnhandledType = USER_ACTION_TYPES[type] === undefined;
+
+  if (isUnhandledType) {
+    throw new Error(`unhandled type ${type} in userReducer`);
+  }
+
+  const Actions = {
+    [USER_ACTION_TYPES.SET_CURRENT_USER]: () => ({
+      ...state,
+      currentUser: payload,
+    }),
+  };
+
+  return Actions[type];
+};
+
+const INITIAL_STATE = {
+  currentUser: null,
+};
+
 export const UserProvider = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState(null);
+  const [state, dispatch] = useReducer(userReducer, INITIAL_STATE);
+
+  const { currentUser } = state;
+
+  const setCurrentUser = (user) => {
+    dispatch({ type: USER_ACTION_TYPES.SET_CURRENT_USER, payload: user });
+  };
+
   const value = { currentUser, setCurrentUser };
 
   useEffect(() => {
@@ -20,7 +56,6 @@ export const UserProvider = ({ children }) => {
         createUserDocumentFromAuth(user);
       }
       setCurrentUser(user);
-      // console.log(user);
     });
 
     return unsubscribe;
